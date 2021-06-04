@@ -13,11 +13,12 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.view.View;
 import android.widget.TextView;
 import android.widget.ImageView;
 
 public class MainActivity extends AppCompatActivity {
-
+    private boolean canScan;
     //
     // The section snippet below registers to receive the data broadcast from the
     // DataWedge intent output. In the example, a dynamic broadcast receiver is
@@ -40,6 +41,7 @@ public class MainActivity extends AppCompatActivity {
         filter.addCategory(Intent.CATEGORY_DEFAULT);
         filter.addAction(getResources().getString(R.string.activity_intent_filter_action));
         registerReceiver(myBroadcastReceiver, filter);
+        this.canScan = true;
     }
 
     @Override
@@ -85,16 +87,30 @@ public class MainActivity extends AppCompatActivity {
     //
     private void displayScanResult(Intent initiatingIntent, String howDataReceived)
     {
-        String decodedSource = initiatingIntent.getStringExtra(getResources().getString(R.string.datawedge_intent_key_source));
-        String decodedData = initiatingIntent.getStringExtra(getResources().getString(R.string.datawedge_intent_key_data));
-        String decodedLabelType = initiatingIntent.getStringExtra(getResources().getString(R.string.datawedge_intent_key_label_type));
+        if (this.canScan) {
+            String decodedSource = initiatingIntent.getStringExtra(getResources().getString(R.string.datawedge_intent_key_source));
+            String decodedData = initiatingIntent.getStringExtra(getResources().getString(R.string.datawedge_intent_key_data));
+//        String decodedLabelType = initiatingIntent.getStringExtra(getResources().getString(R.string.datawedge_intent_key_label_type));
 
+            final TextView lblScanSource = (TextView) findViewById(R.id.lblScanSource);
+            final TextView lblScanData = (TextView) findViewById(R.id.lblScanData);
+//        final TextView lblScanLabelType = (TextView) findViewById(R.id.lblScanDecoder);
+
+            lblScanSource.setText(decodedSource + " " + howDataReceived);
+            lblScanData.setText(decodedData);
+//        lblScanLabelType.setText(decodedLabelType);
+            this.canScan = false;
+    }
+
+    }
+
+    public void clearButtonClicked(View view) {
+        // Do something in response to button
         final TextView lblScanSource = (TextView) findViewById(R.id.lblScanSource);
         final TextView lblScanData = (TextView) findViewById(R.id.lblScanData);
-        final TextView lblScanLabelType = (TextView) findViewById(R.id.lblScanDecoder);
 
-        lblScanSource.setText(decodedSource + " " + howDataReceived);
-        lblScanData.setText(decodedData);
-        lblScanLabelType.setText(decodedLabelType);
+        lblScanSource.setText("Waiting for scan...");
+        lblScanData.setText("Waiting for scan...");
+        this.canScan = true;
     }
 }
