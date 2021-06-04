@@ -23,8 +23,8 @@
         android:layout_height="wrap_content"
         android:layout_marginStart="8dp"
         android:layout_marginTop="8dp"
-        android:textSize="18sp"
         android:text="Waiting for scan..."
+        android:textSize="18sp"
         app:layout_constraintStart_toEndOf="@+id/textView"
         app:layout_constraintTop_toTopOf="parent" />
 
@@ -49,17 +49,13 @@
         app:layout_constraintTop_toBottomOf="@+id/lblScanSource" />
 
     <ImageView
-        android:id="@+id/OutcomeImage"
+        android:id="@+id/outcomeImage"
         android:layout_width="200dp"
         android:layout_height="200dp"
-        android:layout_marginStart="105dp"
-        android:layout_marginLeft="105dp"
         android:layout_marginTop="108dp"
-        android:layout_marginEnd="106dp"
-        android:layout_marginRight="106dp"
         android:visibility="visible"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintHorizontal_bias="0.5"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/lblScanData"
         tools:srcCompat="@tools:sample/avatars"
@@ -69,15 +65,12 @@
         android:id="@+id/clear"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="161dp"
-        android:layout_marginLeft="161dp"
         android:layout_marginTop="74dp"
-        android:layout_marginEnd="162dp"
-        android:layout_marginRight="162dp"
         android:onClick="clearButtonClicked"
         android:text="Clear"
         app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.5"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/OutcomeImage" />
+        app:layout_constraintTop_toBottomOf="@+id/outcomeImage" />
 
 </android.support.constraint.ConstraintLayout>

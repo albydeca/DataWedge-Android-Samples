@@ -42,6 +42,8 @@ public class MainActivity extends AppCompatActivity {
         filter.addAction(getResources().getString(R.string.activity_intent_filter_action));
         registerReceiver(myBroadcastReceiver, filter);
         this.canScan = true;
+        final ImageView resultImage = (ImageView) findViewById(R.id.outcomeImage);
+        resultImage.setImageResource(R.drawable.logo);
     }
 
     @Override
@@ -94,10 +96,12 @@ public class MainActivity extends AppCompatActivity {
 
             final TextView lblScanSource = (TextView) findViewById(R.id.lblScanSource);
             final TextView lblScanData = (TextView) findViewById(R.id.lblScanData);
+            final ImageView resultImage = (ImageView) findViewById(R.id.outcomeImage);
 //        final TextView lblScanLabelType = (TextView) findViewById(R.id.lblScanDecoder);
 
             lblScanSource.setText(decodedSource + " " + howDataReceived);
             lblScanData.setText(decodedData);
+            resultImage.setImageResource(R.drawable.checked);
 //        lblScanLabelType.setText(decodedLabelType);
             this.canScan = false;
     }
@@ -108,9 +112,11 @@ public class MainActivity extends AppCompatActivity {
         // Do something in response to button
         final TextView lblScanSource = (TextView) findViewById(R.id.lblScanSource);
         final TextView lblScanData = (TextView) findViewById(R.id.lblScanData);
+        final ImageView resultImage = (ImageView) findViewById(R.id.outcomeImage);
 
         lblScanSource.setText("Waiting for scan...");
         lblScanData.setText("Waiting for scan...");
+        resultImage.setImageResource(R.drawable.logo);
         this.canScan = true;
     }
 }
