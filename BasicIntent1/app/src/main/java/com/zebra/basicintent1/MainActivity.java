@@ -16,6 +16,20 @@ import android.os.Bundle;
 import android.view.View;
 import android.widget.TextView;
 import android.widget.ImageView;
+import java.io.File;
+import java.io.IOException;
+import java.security.SignatureException;
+import java.security.cert.CertificateException;
+import java.security.cert.CertificateExpiredException;
+import java.security.cert.X509Certificate;
+import java.util.Arrays;
+
+import com.zebra.utils.X509Importer;
+
+import se.digg.dgc.payload.v1.DGCSchemaException;
+import se.digg.dgc.service.impl.DefaultDGCDecoder;
+import se.digg.dgc.signatures.impl.DefaultDGCSignatureVerifier;
+import se.digg.dgc.payload.v1.DigitalCovidCertificate;
 
 public class MainActivity extends AppCompatActivity {
     private boolean canScan;
@@ -44,6 +58,7 @@ public class MainActivity extends AppCompatActivity {
         this.canScan = true;
         final ImageView resultImage = (ImageView) findViewById(R.id.outcomeImage);
         resultImage.setImageResource(R.drawable.logo);
+
     }
 
     @Override
@@ -65,7 +80,15 @@ public class MainActivity extends AppCompatActivity {
         public void onReceive(Context context, Intent intent) {
             String action = intent.getAction();
             Bundle b = intent.getExtras();
-
+            X509Certificate decoding_cert = null;
+            try {
+                decoding_cert = X509Importer.importX509FromFile
+                        (new File(context.getFilesDir(), "certfile"));
+            } catch (CertificateException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
             //  This is useful for debugging to verify the format of received intents from DataWedge
             //for (String key : b.keySet())
             //{
@@ -75,9 +98,10 @@ public class MainActivity extends AppCompatActivity {
             if (action.equals(getResources().getString(R.string.activity_intent_filter_action))) {
                 //  Received a barcode scan
                 try {
-                    displayScanResult(intent, "via Broadcast");
+                    displayScanResult(intent, "via Broadcast", decoding_cert);
                 } catch (Exception e) {
                     //  Catch if the UI does not exist when we receive the broadcast
+                    e.printStackTrace();
                 }
             }
         }
@@ -87,7 +111,8 @@ public class MainActivity extends AppCompatActivity {
     // The section below assumes that a UI exists in which to place the data. A production
     // application would be driving much of the behavior following a scan.
     //
-    private void displayScanResult(Intent initiatingIntent, String howDataReceived)
+    private void displayScanResult(Intent initiatingIntent, String howDataReceived,
+                                   X509Certificate decoding_cert)
     {
         if (this.canScan) {
             String decodedSource = initiatingIntent.getStringExtra(getResources().getString(R.string.datawedge_intent_key_source));
@@ -98,10 +123,26 @@ public class MainActivity extends AppCompatActivity {
             final TextView lblScanData = (TextView) findViewById(R.id.lblScanData);
             final ImageView resultImage = (ImageView) findViewById(R.id.outcomeImage);
 //        final TextView lblScanLabelType = (TextView) findViewById(R.id.lblScanDecoder);
-
             lblScanSource.setText(decodedSource + " " + howDataReceived);
-            lblScanData.setText(decodedData);
-            resultImage.setImageResource(R.drawable.checked);
+
+            DefaultDGCDecoder dgcd = new DefaultDGCDecoder
+                    (new DefaultDGCSignatureVerifier(), (x,y) -> Arrays.asList(decoding_cert));
+            try {
+                DigitalCovidCertificate dgc = dgcd.decode(decodedData);
+
+
+                lblScanData.setText(dgc.getNam().getFn() + " " + dgc.getNam().getGn());
+                resultImage.setImageResource(R.drawable.checked);
+            } catch (DGCSchemaException | CertificateExpiredException | SignatureException | IOException e) {
+                lblScanData.setText(e.getMessage());
+                resultImage.setImageResource(R.drawable.check_failed);
+            } catch (IllegalArgumentException e) {
+                e.printStackTrace();
+                lblScanData.setText("Not an EU certificate");
+                resultImage.setImageResource(R.drawable.check_failed);
+            }
+
+
 //        lblScanLabelType.setText(decodedLabelType);
             this.canScan = false;
     }

@@ -1,11 +1,11 @@
 apply plugin: 'com.android.application'
 
 android {
-    compileSdkVersion 28
+    compileSdkVersion 30
     defaultConfig {
         applicationId "com.zebra.basicintent1"
         minSdkVersion 26
-        targetSdkVersion 28
+        targetSdkVersion 30
         versionCode 1
         versionName "1.0"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
@@ -30,10 +30,11 @@ dependencies {
     testImplementation 'junit:junit:4.12'
     androidTestImplementation 'com.android.support.test:runner:1.0.2'
     androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.2'
-    implementation group: 'se.digg.dgc', name: 'dgc-schema', version: '0.9.7'
-    implementation group: 'se.digg.dgc', name: 'dgc-parent', version: '0.9.7', ext: 'pom'
-    implementation group: 'se.digg.dgc', name: 'dgc-create-validate', version: '0.9.7'
+    implementation group: 'se.digg.dgc', name: 'dgc-schema', version: '0.9.9'
+    implementation group: 'se.digg.dgc', name: 'dgc-parent', version: '0.9.9', ext: 'pom'
+    implementation group: 'se.digg.dgc', name: 'dgc-create-validate', version: '0.9.9'
     implementation group: 'org.springframework', name: 'spring-core', version: '5.3.6'
     implementation group: 'org.springframework', name: 'spring-beans', version: '5.3.6'
+    implementation group: 'commons-io', name: 'commons-io', version: '2.2'
 
 }
