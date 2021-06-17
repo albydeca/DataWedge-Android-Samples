@@ -13,4 +13,16 @@
     <string name="datawedge_intent_key_source">com.symbol.datawedge.source</string>
     <string name="datawedge_intent_key_label_type">com.symbol.datawedge.label_type</string>
     <string name="datawedge_intent_key_data">com.symbol.datawedge.data_string</string>
+    <string name="input_wait">Waiting for scan…</string>
+    <string name="not_eu_cert">Not an EU certificate</string>
+    <string name="result_info">Result Information</string>
+    <string name="info_red_message">This certificate could not be read. More information about this error
+    can be found in the message at the top of the screen.\n \n You should inform the individual about
+    this error and prompt them for an alternative method of proof.</string>
+    <string name="info_green_message">This certificate was scanned correctly and represents a valid proof
+    of vaccination or test.\n \n This means that:\n
+    - the issuing institution is recognised by the EU and has used a valid signing key\n
+    - the certificate is still valid at this moment in time\n \n
+    To ascertain that the holder of this certificate matches the person in front of you, please ask them for
+    an identity document such as a passport or driving licence.</string>
 </resources>

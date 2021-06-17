@@ -11,11 +11,14 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.DialogInterface;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.TextView;
 import android.widget.ImageView;
+import android.app.AlertDialog;
+
 import java.io.File;
 import java.io.IOException;
 import java.security.SignatureException;
@@ -33,6 +36,7 @@ import se.digg.dgc.payload.v1.DigitalCovidCertificate;
 
 public class MainActivity extends AppCompatActivity {
     private boolean canScan;
+    private boolean validCert;
     //
     // The section snippet below registers to receive the data broadcast from the
     // DataWedge intent output. In the example, a dynamic broadcast receiver is
@@ -56,7 +60,10 @@ public class MainActivity extends AppCompatActivity {
         filter.addAction(getResources().getString(R.string.activity_intent_filter_action));
         registerReceiver(myBroadcastReceiver, filter);
         this.canScan = true;
+        this.validCert = false;
         final ImageView resultImage = (ImageView) findViewById(R.id.outcomeImage);
+        final TextView lblInfoData = (TextView) findViewById(R.id.info_lbl);
+        lblInfoData.setVisibility(View.INVISIBLE);
         resultImage.setImageResource(R.drawable.logo);
 
     }
@@ -118,6 +125,8 @@ public class MainActivity extends AppCompatActivity {
             String decodedSource = initiatingIntent.getStringExtra(getResources().getString(R.string.datawedge_intent_key_source));
             String decodedData = initiatingIntent.getStringExtra(getResources().getString(R.string.datawedge_intent_key_data));
 //        String decodedLabelType = initiatingIntent.getStringExtra(getResources().getString(R.string.datawedge_intent_key_label_type));
+            final TextView lblInfoData = (TextView) findViewById(R.id.info_lbl);
+            lblInfoData.setVisibility(View.VISIBLE);
 
             final TextView lblScanSource = (TextView) findViewById(R.id.lblScanSource);
             final TextView lblScanData = (TextView) findViewById(R.id.lblScanData);
@@ -133,13 +142,16 @@ public class MainActivity extends AppCompatActivity {
 
                 lblScanData.setText(dgc.getNam().getFn() + " " + dgc.getNam().getGn());
                 resultImage.setImageResource(R.drawable.checked);
+                this.validCert = true;
             } catch (DGCSchemaException | CertificateExpiredException | SignatureException | IOException e) {
                 lblScanData.setText(e.getMessage());
                 resultImage.setImageResource(R.drawable.check_failed);
+                this.validCert = false;
             } catch (IllegalArgumentException e) {
                 e.printStackTrace();
-                lblScanData.setText("Not an EU certificate");
+                lblScanData.setText(R.string.not_eu_cert);
                 resultImage.setImageResource(R.drawable.check_failed);
+                this.validCert = false;
             }
 
 
@@ -155,9 +167,31 @@ public class MainActivity extends AppCompatActivity {
         final TextView lblScanData = (TextView) findViewById(R.id.lblScanData);
         final ImageView resultImage = (ImageView) findViewById(R.id.outcomeImage);
 
-        lblScanSource.setText("Waiting for scan...");
-        lblScanData.setText("Waiting for scan...");
+        lblScanSource.setText(R.string.input_wait);
+        lblScanData.setText(R.string.input_wait);
         resultImage.setImageResource(R.drawable.logo);
+
+        final TextView lblInfoData = (TextView) findViewById(R.id.info_lbl);
+        lblInfoData.setVisibility(View.INVISIBLE);
+
         this.canScan = true;
+        this.validCert = false;
+    }
+
+    public void whatDoesThisMeanLblClicked(View view) {
+        AlertDialog.Builder alert = new AlertDialog.Builder(this);
+        alert.setTitle(R.string.result_info);
+        if(this.validCert) {
+            alert.setMessage(R.string.info_green_message);
+        } else {
+            alert.setMessage(R.string.info_red_message);
+        }
+        alert.setNegativeButton("Cancel",
+                new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int whichButton) {
+                    }
+                });
+
+        alert.show();
     }
 }
