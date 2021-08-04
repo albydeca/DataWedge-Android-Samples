@@ -30,6 +30,7 @@ import java.util.Arrays;
 import com.zebra.utils.X509Importer;
 
 import se.digg.dgc.payload.v1.DGCSchemaException;
+import se.digg.dgc.payload.v1.PersonName;
 import se.digg.dgc.service.impl.DefaultDGCDecoder;
 import se.digg.dgc.signatures.impl.DefaultDGCSignatureVerifier;
 import se.digg.dgc.payload.v1.DigitalCovidCertificate;
@@ -54,6 +55,11 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        final TextView birth = (TextView) findViewById(R.id.birth);
+        final TextView name_surname = (TextView) findViewById(R.id.lblScanData);
+        birth.setVisibility(View.INVISIBLE);
+        name_surname.setVisibility(View.INVISIBLE);
 
         IntentFilter filter = new IntentFilter();
         filter.addCategory(Intent.CATEGORY_DEFAULT);
@@ -129,27 +135,33 @@ public class MainActivity extends AppCompatActivity {
             lblInfoData.setVisibility(View.VISIBLE);
 
             final TextView lblScanSource = (TextView) findViewById(R.id.lblScanSource);
-            final TextView lblScanData = (TextView) findViewById(R.id.lblScanData);
+            final TextView name_surname = (TextView) findViewById(R.id.lblScanData);
             final ImageView resultImage = (ImageView) findViewById(R.id.outcomeImage);
 //        final TextView lblScanLabelType = (TextView) findViewById(R.id.lblScanDecoder);
+
+            final TextView birth = (TextView) findViewById(R.id.birth);
             lblScanSource.setText(decodedSource + " " + howDataReceived);
 
             DefaultDGCDecoder dgcd = new DefaultDGCDecoder
-                    (new DefaultDGCSignatureVerifier(), (x,y) -> Arrays.asList(decoding_cert));
+                    (new DefaultDGCSignatureVerifier(), (x, y) -> Arrays.asList(decoding_cert));
+            DigitalCovidCertificate dgc = null;
             try {
-                DigitalCovidCertificate dgc = dgcd.decode(decodedData);
+                dgc = dgcd.decode(decodedData);
 
+                birth.setVisibility(View.VISIBLE);
+                name_surname.setVisibility(View.VISIBLE);
+                birth.setText(dgc.getDateOfBirth().toString());
+                name_surname.setText(dgc.getNam().getFn() + " " + dgc.getNam().getGn());
 
-                lblScanData.setText(dgc.getNam().getFn() + " " + dgc.getNam().getGn());
                 resultImage.setImageResource(R.drawable.checked);
                 this.validCert = true;
             } catch (DGCSchemaException | CertificateExpiredException | SignatureException | IOException e) {
-                lblScanData.setText(e.getMessage());
+                name_surname.setText(e.getMessage());
                 resultImage.setImageResource(R.drawable.check_failed);
                 this.validCert = false;
             } catch (IllegalArgumentException e) {
                 e.printStackTrace();
-                lblScanData.setText(R.string.not_eu_cert);
+                name_surname.setText(R.string.not_eu_cert);
                 resultImage.setImageResource(R.drawable.check_failed);
                 this.validCert = false;
             }
@@ -157,7 +169,7 @@ public class MainActivity extends AppCompatActivity {
 
 //        lblScanLabelType.setText(decodedLabelType);
             this.canScan = false;
-    }
+        }
 
     }
 
@@ -166,13 +178,18 @@ public class MainActivity extends AppCompatActivity {
         final TextView lblScanSource = (TextView) findViewById(R.id.lblScanSource);
         final TextView lblScanData = (TextView) findViewById(R.id.lblScanData);
         final ImageView resultImage = (ImageView) findViewById(R.id.outcomeImage);
+        final TextView birth = (TextView) findViewById(R.id.birth);
 
         lblScanSource.setText(R.string.input_wait);
         lblScanData.setText(R.string.input_wait);
         resultImage.setImageResource(R.drawable.logo);
 
         final TextView lblInfoData = (TextView) findViewById(R.id.info_lbl);
+        final TextView name_surname = (TextView) findViewById(R.id.lblScanData);
+
         lblInfoData.setVisibility(View.INVISIBLE);
+        birth.setVisibility(View.INVISIBLE);
+        name_surname.setVisibility(View.INVISIBLE);
 
         this.canScan = true;
         this.validCert = false;
