@@ -58,8 +58,10 @@ public class MainActivity extends AppCompatActivity {
 
         final TextView birth = (TextView) findViewById(R.id.birth);
         final TextView name_surname = (TextView) findViewById(R.id.lblScanData);
+        final TextView source = (TextView) findViewById(R.id.lblScanSource);
         birth.setVisibility(View.INVISIBLE);
-        name_surname.setVisibility(View.INVISIBLE);
+        source.setVisibility(View.INVISIBLE);
+        name_surname.setText("Waiting for scan...");
 
         IntentFilter filter = new IntentFilter();
         filter.addCategory(Intent.CATEGORY_DEFAULT);
@@ -124,6 +126,35 @@ public class MainActivity extends AppCompatActivity {
     // The section below assumes that a UI exists in which to place the data. A production
     // application would be driving much of the behavior following a scan.
     //
+
+    @Override
+    public void onBackPressed() {
+        AlertDialog.Builder ab = new AlertDialog.Builder(MainActivity.this);
+        ab.setTitle("Exit");
+        ab.setMessage("Are you sure you want to exit?");
+        ab.setPositiveButton("yes", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.dismiss();
+                //if you want to kill app . from other then your main avtivity.(Launcher)
+                android.os.Process.killProcess(android.os.Process.myPid());
+                System.exit(1);
+
+                //if you want to finish just current activity
+
+                MainActivity.this.finish();
+            }
+        });
+        ab.setNegativeButton("no", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.dismiss();
+            }
+        });
+
+        ab.show();
+    }
+
     private void displayScanResult(Intent initiatingIntent, String howDataReceived,
                                    X509Certificate decoding_cert)
     {
@@ -137,9 +168,12 @@ public class MainActivity extends AppCompatActivity {
             final TextView lblScanSource = (TextView) findViewById(R.id.lblScanSource);
             final TextView name_surname = (TextView) findViewById(R.id.lblScanData);
             final ImageView resultImage = (ImageView) findViewById(R.id.outcomeImage);
+            final TextView text = (TextView) findViewById(R.id.textView);
 //        final TextView lblScanLabelType = (TextView) findViewById(R.id.lblScanDecoder);
 
             final TextView birth = (TextView) findViewById(R.id.birth);
+            text.setVisibility(View.VISIBLE);
+            lblScanSource.setVisibility(View.VISIBLE);
             lblScanSource.setText(decodedSource + " " + howDataReceived);
 
             DefaultDGCDecoder dgcd = new DefaultDGCDecoder
@@ -156,11 +190,13 @@ public class MainActivity extends AppCompatActivity {
                 resultImage.setImageResource(R.drawable.checked);
                 this.validCert = true;
             } catch (DGCSchemaException | CertificateExpiredException | SignatureException | IOException e) {
+                name_surname.setVisibility(View.VISIBLE);
                 name_surname.setText(e.getMessage());
                 resultImage.setImageResource(R.drawable.check_failed);
                 this.validCert = false;
             } catch (IllegalArgumentException e) {
                 e.printStackTrace();
+                name_surname.setVisibility(View.VISIBLE);
                 name_surname.setText(R.string.not_eu_cert);
                 resultImage.setImageResource(R.drawable.check_failed);
                 this.validCert = false;
@@ -179,17 +215,18 @@ public class MainActivity extends AppCompatActivity {
         final TextView lblScanData = (TextView) findViewById(R.id.lblScanData);
         final ImageView resultImage = (ImageView) findViewById(R.id.outcomeImage);
         final TextView birth = (TextView) findViewById(R.id.birth);
-
-        lblScanSource.setText(R.string.input_wait);
-        lblScanData.setText(R.string.input_wait);
-        resultImage.setImageResource(R.drawable.logo);
-
         final TextView lblInfoData = (TextView) findViewById(R.id.info_lbl);
         final TextView name_surname = (TextView) findViewById(R.id.lblScanData);
 
         lblInfoData.setVisibility(View.INVISIBLE);
+        lblScanSource.setVisibility(View.INVISIBLE);
         birth.setVisibility(View.INVISIBLE);
         name_surname.setVisibility(View.INVISIBLE);
+        lblScanData.setVisibility(View.VISIBLE);
+
+        lblScanData.setText(R.string.input_wait);
+        resultImage.setImageResource(R.drawable.logo);
+
 
         this.canScan = true;
         this.validCert = false;
