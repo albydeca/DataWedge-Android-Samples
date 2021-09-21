@@ -29,6 +29,8 @@ import java.util.Arrays;
 
 import com.zebra.utils.X509Importer;
 
+import org.json.JSONException;
+
 import se.digg.dgc.payload.v1.DGCSchemaException;
 import se.digg.dgc.payload.v1.PersonName;
 import se.digg.dgc.service.impl.DefaultDGCDecoder;
@@ -209,7 +211,9 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-    public void clearButtonClicked(View view) {
+    public void clearButtonClicked(View view) throws IOException, JSONException {
+        final String ANSI_GREEN = "\u001B[32m";
+        final String ANSI_RESET = "\u001B[0m";
         // Do something in response to button
         final TextView lblScanSource = (TextView) findViewById(R.id.lblScanSource);
         final TextView lblScanData = (TextView) findViewById(R.id.lblScanData);
@@ -230,6 +234,16 @@ public class MainActivity extends AppCompatActivity {
 
         this.canScan = true;
         this.validCert = false;
+
+
+        LogCreator creator = new LogCreator();
+        LogAuditor auditor = new LogAuditor();
+        System.out.println("-------------------------- " + ANSI_GREEN +  "LogCreator" + ANSI_RESET + " --------------------------");
+        String subscriptionLink = creator.getAllSubscriptions();
+        creator.authorizedSubscriptions(subscriptionLink);
+        creator.writeDataOnChannel();
+        System.out.println("-------------------------- " + ANSI_GREEN +  "LogAuditor" + ANSI_RESET + " --------------------------");
+        auditor.getDataFromChannel();
     }
 
     public void whatDoesThisMeanLblClicked(View view) {
