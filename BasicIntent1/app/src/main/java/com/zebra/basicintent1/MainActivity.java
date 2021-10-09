@@ -12,8 +12,10 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.DialogInterface;
+import android.os.StrictMode;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
 import android.widget.ImageView;
@@ -29,10 +31,10 @@ import java.util.Arrays;
 
 import com.zebra.utils.X509Importer;
 
+import org.bouncycastle.crypto.CryptoException;
 import org.json.JSONException;
 
 import se.digg.dgc.payload.v1.DGCSchemaException;
-import se.digg.dgc.payload.v1.PersonName;
 import se.digg.dgc.service.impl.DefaultDGCDecoder;
 import se.digg.dgc.signatures.impl.DefaultDGCSignatureVerifier;
 import se.digg.dgc.payload.v1.DigitalCovidCertificate;
@@ -76,6 +78,37 @@ public class MainActivity extends AppCompatActivity {
         lblInfoData.setVisibility(View.INVISIBLE);
         resultImage.setImageResource(R.drawable.logo);
 
+        if(!control()) {
+            Log.i("DID", "Sto creando il DID");
+            DID test = new DID(MainActivity.this);
+            test.createDID(new VolleyCallBack() {
+                @Override
+                public void onSuccess() {
+                    System.out.println("DOCUMENTO DID CREATO");
+                    test.createNonce(new VolleyCallBack() {
+                        @Override
+                        public void onSuccess() {
+                            try {
+                                test.signatureNonce(new VolleyCallBack() {
+                                    @Override
+                                    public void onSuccess() {
+                                        test.storeData();
+                                    }
+                                });
+                            } catch (CryptoException e) {
+                                e.printStackTrace();
+                            } catch (InterruptedException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    });
+                }
+            });
+        }
+        else {
+            Log.i("DID", "Creato già in precedenza");
+        }
+
     }
 
     @Override
@@ -98,6 +131,12 @@ public class MainActivity extends AppCompatActivity {
             String action = intent.getAction();
             Bundle b = intent.getExtras();
             X509Certificate decoding_cert = null;
+            File file = new File(context.getFilesDir(), "certfile");
+            if(file.exists())
+                Log.i("CERTFILE", "ESISTE");
+            else {
+                Log.i("CERTFILE", "NON ESISTE");
+            }
             try {
                 decoding_cert = X509Importer.importX509FromFile
                         (new File(context.getFilesDir(), "certfile"));
@@ -158,8 +197,10 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void displayScanResult(Intent initiatingIntent, String howDataReceived,
-                                   X509Certificate decoding_cert)
-    {
+                                   X509Certificate decoding_cert) throws IOException, JSONException {
+        StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
+
+        StrictMode.setThreadPolicy(policy);
         if (this.canScan) {
             String decodedSource = initiatingIntent.getStringExtra(getResources().getString(R.string.datawedge_intent_key_source));
             String decodedData = initiatingIntent.getStringExtra(getResources().getString(R.string.datawedge_intent_key_data));
@@ -196,6 +237,7 @@ public class MainActivity extends AppCompatActivity {
                 name_surname.setText(e.getMessage());
                 resultImage.setImageResource(R.drawable.check_failed);
                 this.validCert = false;
+
             } catch (IllegalArgumentException e) {
                 e.printStackTrace();
                 name_surname.setVisibility(View.VISIBLE);
@@ -211,9 +253,7 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-    public void clearButtonClicked(View view) throws IOException, JSONException {
-        final String ANSI_GREEN = "\u001B[32m";
-        final String ANSI_RESET = "\u001B[0m";
+    public void clearButtonClicked(View view) {
         // Do something in response to button
         final TextView lblScanSource = (TextView) findViewById(R.id.lblScanSource);
         final TextView lblScanData = (TextView) findViewById(R.id.lblScanData);
@@ -236,14 +276,6 @@ public class MainActivity extends AppCompatActivity {
         this.validCert = false;
 
 
-        LogCreator creator = new LogCreator();
-        LogAuditor auditor = new LogAuditor();
-        System.out.println("-------------------------- " + ANSI_GREEN +  "LogCreator" + ANSI_RESET + " --------------------------");
-        String subscriptionLink = creator.getAllSubscriptions();
-        creator.authorizedSubscriptions(subscriptionLink);
-        creator.writeDataOnChannel();
-        System.out.println("-------------------------- " + ANSI_GREEN +  "LogAuditor" + ANSI_RESET + " --------------------------");
-        auditor.getDataFromChannel();
     }
 
     public void whatDoesThisMeanLblClicked(View view) {
@@ -261,5 +293,14 @@ public class MainActivity extends AppCompatActivity {
                 });
 
         alert.show();
+    }
+
+    public boolean control() {
+        File f = getFileStreamPath("key.json");
+        if (f.length() == 0) {
+            return false;
+        } else {
+            return true;
+        }
     }
 }

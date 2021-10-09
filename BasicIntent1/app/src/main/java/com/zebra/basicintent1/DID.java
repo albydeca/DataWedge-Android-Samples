@@ -1,16 +1,22 @@
 package com.zebra.basicintent1;
 
-import com.github.javafaker.Faker;
+
+import android.content.Context;
+import android.net.wifi.WifiManager;
+import android.os.Build;
+import android.text.format.Formatter;
+import android.util.Log;
+
+import com.android.volley.AuthFailureError;
+import com.android.volley.Request;
+import com.android.volley.RequestQueue;
+import com.android.volley.Response;
+import com.android.volley.RetryPolicy;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.JsonObjectRequest;
+import com.android.volley.toolbox.Volley;
 
 import org.apache.commons.codec.digest.DigestUtils;
-import org.apache.http.HttpHeaders;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.entity.StringEntity;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
-import org.apache.http.util.EntityUtils;
 import org.bitcoinj.core.Base58;
 import org.bouncycastle.crypto.CryptoException;
 import org.bouncycastle.crypto.Signer;
@@ -21,87 +27,130 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.Map;
 
 import javax.xml.bind.DatatypeConverter;
 
 public class DID {
     private final String api_key = "api-key=94F5BA49-12B6-4E45-A487-BF91C442276D";
-    public static final String ANSI_RED = "\u001B[31m";
-    public static final String ANSI_RESET = "\u001B[0m";
-    public static final String ANSI_GREEN = "\u001B[32m";
+    private final Context context;
+    private String nonce = null;
+    private String did_id = null;
+    private String private_key = null;
+    private String public_key = null;
+    private String jwt = null;
 
-    public String[] createDID(String who) throws IOException, JSONException {
-        CloseableHttpClient client = HttpClients.createDefault();
-        HttpPost httpPost = new HttpPost("https://ensuresec.solutions.iota.org/api/v0.1/identities/create?" + api_key);
-        String json;
-
-        Faker faker1 = new Faker();
-        String jsonDevice = new JSONObject()
-                .put("username", faker1.name())
-                .put("claim", new JSONObject().put("type", "Device").put("category", new JSONArray().put("actuator"))
-                        .put("controlledProperty", new JSONArray().put("fillingLevel").put("temperature"))
-                        .put("firmwareVersion", "number")
-                        .put("hardwareVersion", "number")
-                        .put("ipAddress", new JSONArray().put("192.14.56.78"))
-                        .put("serialNumber", "9845A")
-                        .put("dateFirstUsed", "2014-09-11T11:00:00Z"))
-                .toString();
-
-        Faker faker2 = new Faker();
-        String jsonOrganization = new JSONObject()
-                .put("username", faker2.name())
-                .put("claim", new JSONObject().put("type", "Organization").put("name", "randomName"))
-                .put("alternateName", "randomName")
-                .put("url", "www.random.com")
-                .put("address", faker2.address())
-                .put("email", "organization@test.com")
-                .put("faxNumber", "1234567890")
-                .put("telephone", "1234567890")
-                .toString();
-
-        if(who.equals("LogCreator")) {
-            json = jsonOrganization;
-        }
-        else {
-            json = jsonDevice;
-        }
-
-        StringEntity entity = new StringEntity(json);
-        httpPost.setEntity(entity);
-        httpPost.setHeader(HttpHeaders.ACCEPT, "application/json");
-        httpPost.setHeader(HttpHeaders.CONTENT_TYPE, "application/json");
-
-        CloseableHttpResponse response = client.execute(httpPost);
-
-        JSONObject respons = new JSONObject(EntityUtils.toString(response.getEntity(), StandardCharsets.UTF_8));
-        System.out.println("-------------------------- " + ANSI_GREEN +  who + ANSI_RESET + " --------------------------");
-        System.out.println(ANSI_RED + "DID ID: " + ANSI_RESET +  respons.getJSONObject("doc").getString("id") + "\n" + ANSI_RED + "Private Key: " + ANSI_RESET + respons.getJSONObject("key").getString("secret") + "\n" + ANSI_RED + "Public Key: " + ANSI_RESET + respons.getJSONObject("key").getString("public"));
-        client.close();
-        String[] result = new String[] {respons.getJSONObject("key").getString("secret"), respons.getJSONObject("key").getString("public"), respons.getJSONObject("doc").getString("id")};
-        return result;
+    public DID(Context cont) {
+        this.context = cont;
     }
 
-    public String createNonce(String did_id) throws IOException, JSONException {
-        CloseableHttpClient client = HttpClients.createDefault();
-        HttpGet httpGet = new HttpGet("https://ensuresec.solutions.iota.org/api/v0.1/authentication/prove-ownership/" + did_id + "?" + this.api_key);
-        CloseableHttpResponse response = client.execute(httpGet);
+    public void createDID(final VolleyCallBack callBack) {
+        String postUrl = "https://ensuresec.solutions.iota.org/api/v0.1/identities/create?" + this.api_key;
+        RequestQueue requestQueue = Volley.newRequestQueue(this.context);
 
-        JSONObject respons = new JSONObject(EntityUtils.toString(response.getEntity(), StandardCharsets.UTF_8));
-        client.close();
-        return respons.getString("nonce");
+        JSONObject postData = new JSONObject();
+        WifiManager wm = (WifiManager) context.getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+        try {
+            postData.put("username",  Build.USER)
+                    .put("claim", new JSONObject().put("type", "Device").put("category", new JSONArray().put("actuator"))
+                            .put("controlledProperty", new JSONArray().put("fillingLevel").put("temperature"))
+                            .put("firmwareVersion", android.os.Build.VERSION.RELEASE)
+                            .put("hardwareVersion", Build.BOARD)
+                            .put("ipAddress", new JSONArray().put(Formatter.formatIpAddress(wm.getConnectionInfo().getIpAddress()))))
+                    .toString();
+
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+
+        JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(Request.Method.POST, postUrl, postData, new Response.Listener<JSONObject>() {
+            @Override
+            public void onResponse(JSONObject response) {
+                try {
+                    did_id = response.getJSONObject("doc").getString("id");
+                    private_key = response.getJSONObject("key").getString("secret");
+                    public_key = response.getJSONObject("key").getString("public");
+                    Log.i("DID_ID", did_id);
+                    Log.i("PRIVATE_KEY", private_key);
+                    Log.i("PUBLIC_KEY", public_key);
+                    callBack.onSuccess();
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+            }
+        }, new Response.ErrorListener() {
+            @Override
+            public void onErrorResponse(VolleyError error) {
+                error.printStackTrace();
+            }
+        }) {
+            @Override
+            public Map<String, String> getHeaders() throws AuthFailureError {
+                Map<String, String> params = new HashMap<String, String>();
+                params.put("Accept", "application/json");
+                params.put("Content-type", "application/json");
+                return params;
+            }
+        };
+
+        jsonObjectRequest.setRetryPolicy(new RetryPolicy() {
+            @Override
+            public int getCurrentTimeout() {
+                return 20000;
+            }
+
+            @Override
+            public int getCurrentRetryCount() {
+                return 20000;
+            }
+
+            @Override
+            public void retry(VolleyError error) throws VolleyError {
+
+            }
+        });
+        requestQueue.add(jsonObjectRequest);
     }
 
-    public String sigantureNonce(String private_key, String public_key, String nonce, String did_id) throws IOException, CryptoException, JSONException {
+    public void createNonce(final VolleyCallBack callBack) {
+        String url = "https://ensuresec.solutions.iota.org/api/v0.1/authentication/prove-ownership/" + this.did_id + "?" + this.api_key;
 
-        byte[] b58key = Base58.decode(private_key);    // Decode a base58 key and encode it as hex key
+        RequestQueue requestQueue = Volley.newRequestQueue(this.context);
+        JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(Request.Method.GET, url, null, new Response.Listener<JSONObject>() {
+            @Override
+            public void onResponse(JSONObject response) {
+                try {
+                    nonce = response.getString("nonce");
+                    Log.i("NONCE", nonce);
+                    callBack.onSuccess();
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+            }
+        }, new Response.ErrorListener() {
+            @Override
+            public void onErrorResponse(VolleyError error) {
+                error.printStackTrace();
+            }
+        });
+        requestQueue.add(jsonObjectRequest);
+    }
+
+
+    public boolean signatureNonce(final VolleyCallBack callBack) throws CryptoException, InterruptedException {
+        System.out.println("STO PER FIRMARE IL NONCE");
+        byte[] b58key = Base58.decode(this.private_key);    // Decode a base58 key and encode it as hex key
         String b58key_hex = DatatypeConverter.printHexBinary(b58key).toLowerCase();
         byte[] convert_key = DatatypeConverter.parseHexBinary(b58key_hex);
 
         String hash_nonce_hex = DigestUtils.sha256Hex(nonce); // Hash a nonce with SHA-256 (apache_commons)
         byte[] convert_nonce = DatatypeConverter.parseHexBinary(hash_nonce_hex);
-
 
         //https://stackoverflow.com/questions/53921655/rebuild-of-ed25519-keys-with-bouncy-castle-java
         Ed25519PrivateKeyParameters privateKey = new Ed25519PrivateKeyParameters(convert_key, 0);  // Encode in PrivateKey
@@ -113,22 +162,61 @@ public class DID {
         //https://stackoverflow.com/questions/6625776/java-security-invalidkeyexception-key-length-not-128-192-256-bits
         String sign = DatatypeConverter.printHexBinary(signature).toLowerCase();
 
-        CloseableHttpClient client = HttpClients.createDefault();
-        HttpPost httpPost = new HttpPost("https://ensuresec.solutions.iota.org/api/v0.1/authentication/prove-ownership/" + did_id + "?" + this.api_key);
+        String postUrl = "https://ensuresec.solutions.iota.org/api/v0.1/authentication/prove-ownership/" + this.did_id + "?" + this.api_key;
+        RequestQueue requestQueue = Volley.newRequestQueue(this.context);
 
-        String json = new JSONObject()
-                .put("signedNonce", sign)
-                .toString();
+        JSONObject postData = new JSONObject();
+        try {
+            postData.put("signedNonce", sign)
+                    .toString();
 
-        StringEntity entity = new StringEntity(json);
-        httpPost.setEntity(entity);
-        httpPost.setHeader(HttpHeaders.ACCEPT, "application/json");
-        httpPost.setHeader(HttpHeaders.CONTENT_TYPE, "application/json");
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
 
-        CloseableHttpResponse response = client.execute(httpPost);
+        JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(Request.Method.POST, postUrl, postData, new Response.Listener<JSONObject>() {
+            @Override
+            public void onResponse(JSONObject response) {
+                try {
+                    jwt = response.getString("jwt");
+                    Log.i("JWT", jwt);
+                    callBack.onSuccess();
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+            }
+        }, new Response.ErrorListener() {
+            @Override
+            public void onErrorResponse(VolleyError error) {
+                error.printStackTrace();
+            }
+        }) {
+            @Override
+            public Map<String, String> getHeaders() throws AuthFailureError {
+                Map<String, String> params = new HashMap<String, String>();
+                params.put("Accept", "application/json");
+                params.put("Content-type", "application/json");
+                return params;
+            }
+        };
 
-        JSONObject respons = new JSONObject(EntityUtils.toString(response.getEntity(), StandardCharsets.UTF_8));
-        client.close();
+        jsonObjectRequest.setRetryPolicy(new RetryPolicy() {
+            @Override
+            public int getCurrentTimeout() {
+                return 20000;
+            }
+
+            @Override
+            public int getCurrentRetryCount() {
+                return 20000;
+            }
+
+            @Override
+            public void retry(VolleyError error) throws VolleyError {
+
+            }
+        });
+        requestQueue.add(jsonObjectRequest);
 
         // Verify Signature
         byte[] b58key_primary = Base58.decode(public_key);
@@ -139,9 +227,29 @@ public class DID {
         Signer verifier = new Ed25519Signer();
         verifier.init(false, primaryKeyVerify);
         verifier.update(convert_nonce, 0, convert_nonce.length);
-        boolean verified = verifier.verifySignature(signature);
 
-        System.out.println("Verify Signature: " + verified);
-        return respons.getString("jwt");
+        return verifier.verifySignature(signature);
     }
+
+    public void storeData() {
+        JSONObject data = new JSONObject();
+        try {
+            data.put("ID", this.did_id);
+            data.put("PrivateKey", this.private_key);
+            data.put("PublicKey", this.public_key);
+            data.put("JWT", this.jwt);
+            File.createTempFile("key.json", null, this.context.getCacheDir());
+        } catch (JSONException | IOException e) {
+            e.printStackTrace();
+        }
+        try (FileOutputStream fos = this.context.openFileOutput("key.json", Context.MODE_PRIVATE)) {
+            fos.write(data.toString().getBytes(StandardCharsets.UTF_8));
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        System.out.println("DATI SALVATI CORRETTAMENTE");
+    }
+
 }
