@@ -136,6 +136,8 @@ public class MainActivity extends AppCompatActivity {
                 Log.i("CERTFILE", "ESISTE");
             else {
                 Log.i("CERTFILE", "NON ESISTE");
+                LogAuditor id = new LogAuditor(MainActivity.this);
+                id.getCertIDFromChannel();
             }
             try {
                 decoding_cert = X509Importer.importX509FromFile
