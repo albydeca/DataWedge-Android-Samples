@@ -132,35 +132,67 @@ public class MainActivity extends AppCompatActivity {
             Bundle b = intent.getExtras();
             X509Certificate decoding_cert = null;
             File file = new File(context.getFilesDir(), "certfile");
-            if(file.exists())
-                Log.i("CERTFILE", "ESISTE");
-            else {
-                Log.i("CERTFILE", "NON ESISTE");
-                LogAuditor id = new LogAuditor(MainActivity.this);
-                id.getCertIDFromChannel();
-            }
-            try {
-                decoding_cert = X509Importer.importX509FromFile
-                        (new File(context.getFilesDir(), "certfile"));
-            } catch (CertificateException e) {
-                e.printStackTrace();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            //  This is useful for debugging to verify the format of received intents from DataWedge
-            //for (String key : b.keySet())
-            //{
-            //    Log.v(LOG_TAG, key);
-            //}
-
-            if (action.equals(getResources().getString(R.string.activity_intent_filter_action))) {
-                //  Received a barcode scan
+            if(file.exists()) {
+                Log.i("CERTFILE", "exist");
+                //LogAuditor id = new LogAuditor(MainActivity.this);
+                //id.requestSubscription();
                 try {
-                    displayScanResult(intent, "via Broadcast", decoding_cert);
-                } catch (Exception e) {
-                    //  Catch if the UI does not exist when we receive the broadcast
+                    decoding_cert = X509Importer.importX509FromFile
+                            (new File(context.getFilesDir(), "certfile"));
+                } catch (CertificateException e) {
+                    e.printStackTrace();
+                } catch (IOException e) {
                     e.printStackTrace();
                 }
+                //  This is useful for debugging to verify the format of received intents from DataWedge
+                //for (String key : b.keySet())
+                //{
+                //    Log.v(LOG_TAG, key);
+                //}
+
+                if (action.equals(getResources().getString(R.string.activity_intent_filter_action))) {
+                    //  Received a barcode scan
+                    try {
+                        displayScanResult(intent, "via Broadcast", decoding_cert);
+                    } catch (Exception e) {
+                        //  Catch if the UI does not exist when we receive the broadcast
+                        e.printStackTrace();
+                    }
+                }
+            }
+
+            else {
+                Log.i("CERTFILE", "don't exist");
+                LogAuditor id = new LogAuditor(MainActivity.this);
+                id.getCertIDFromChannel(new VolleyCallBack() {
+                    @Override
+                    public void onSuccess() {
+                        X509Certificate decoding_cert = null;
+                        try {
+                            decoding_cert = X509Importer.importX509FromFile
+                                    (new File(context.getFilesDir(), "certfile"));
+                        } catch (CertificateException e) {
+                            e.printStackTrace();
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                        //  This is useful for debugging to verify the format of received intents from DataWedge
+                        //for (String key : b.keySet())
+                        //{
+                        //    Log.v(LOG_TAG, key);
+                        //}
+
+                        if (action.equals(getResources().getString(R.string.activity_intent_filter_action))) {
+                            //  Received a barcode scan
+                            try {
+                                displayScanResult(intent, "via Broadcast", decoding_cert);
+                            } catch (Exception e) {
+                                //  Catch if the UI does not exist when we receive the broadcast
+                                e.printStackTrace();
+                            }
+                        }
+                    }
+                });
             }
         }
     };
